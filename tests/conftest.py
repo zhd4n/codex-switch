@@ -1,4 +1,5 @@
 import base64
+import copy
 import json
 from pathlib import Path
 
@@ -52,21 +53,50 @@ def auth_payloads() -> tuple[dict, dict]:
 
 
 @pytest.fixture
-def auth_file(tmp_path: Path, auth_payloads: tuple[dict, dict]) -> Path:
-    id_payload, access_payload = auth_payloads
-    auth_json = {
-        "auth_mode": "chatgpt",
-        "last_refresh": "2026-03-18T12:55:53.815614Z",
-        "tokens": {
-            "account_id": "acct-123",
-            "id_token": _encode_jwt(id_payload),
-            "access_token": _encode_jwt(access_payload),
-            "refresh_token": "refresh",
-        },
-    }
-    path = tmp_path / "auth.json"
-    path.write_text(json.dumps(auth_json, indent=2))
-    return path
+def auth_file_factory(tmp_path: Path, auth_payloads: tuple[dict, dict]):
+    counter = 0
+
+    def make_auth_file(
+        *,
+        email: str = "author@example.com",
+        plan: str = "plus",
+        account_id: str = "acct-123",
+        session_id: str = "authsess_123",
+        org_title: str = "Personal",
+        auth_mode: str = "chatgpt",
+    ) -> Path:
+        nonlocal counter
+        counter += 1
+        id_payload, access_payload = copy.deepcopy(auth_payloads)
+        id_payload["email"] = email
+        id_payload["https://api.openai.com/auth"]["chatgpt_plan_type"] = plan
+        id_payload["https://api.openai.com/auth"]["organizations"] = [
+            {"title": org_title, "is_default": True}
+        ]
+        access_payload["session_id"] = session_id
+        access_payload["https://api.openai.com/auth"]["chatgpt_plan_type"] = plan
+        access_payload["https://api.openai.com/auth"]["chatgpt_account_id"] = account_id
+        access_payload["https://api.openai.com/profile"]["email"] = email
+        auth_json = {
+            "auth_mode": auth_mode,
+            "last_refresh": "2026-03-18T12:55:53.815614Z",
+            "tokens": {
+                "account_id": account_id,
+                "id_token": _encode_jwt(id_payload),
+                "access_token": _encode_jwt(access_payload),
+                "refresh_token": "refresh",
+            },
+        }
+        path = tmp_path / f"auth-{counter}.json"
+        path.write_text(json.dumps(auth_json, indent=2))
+        return path
+
+    return make_auth_file
+
+
+@pytest.fixture
+def auth_file(auth_file_factory) -> Path:
+    return auth_file_factory()
 
 
 @pytest.fixture
@@ -84,3 +114,14 @@ def live_auth_matches_saved(app_paths: AppPaths, saved_session) -> Path:
     app_paths.live_auth_file.parent.mkdir(parents=True, exist_ok=True)
     app_paths.live_auth_file.write_text(saved_session.snapshot_path.read_text())
     return app_paths.live_auth_file
+
+
+@pytest.fixture
+def other_saved_session(app_paths: AppPaths, auth_file_factory):
+    other_auth_file = auth_file_factory(
+        email="target@example.com",
+        account_id="acct-456",
+        session_id="authsess_456",
+        org_title="Target Org",
+    )
+    return SessionStore(app_paths).save(other_auth_file, name="target-session")

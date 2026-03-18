@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
+import tempfile
 from dataclasses import dataclass
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -105,6 +107,34 @@ class SessionStore:
             records.append(replace(record, is_active=is_active))
         return records
 
+    def get_record(self, name: str) -> SessionRecord:
+        for record in self.list_records():
+            if record.name == name:
+                return record
+        raise KeyError(name)
+
+    def activate(self, name: str) -> SessionRecord:
+        target = self.get_record(name)
+        live_bytes = (
+            self.paths.live_auth_file.read_bytes()
+            if self.paths.live_auth_file.exists()
+            else None
+        )
+        if live_bytes is not None:
+            matches_existing = any(
+                record.snapshot_path.exists()
+                and record.snapshot_path.read_bytes() == live_bytes
+                for record in self.list_records()
+            )
+            if not matches_existing:
+                self.save(
+                    self.paths.live_auth_file,
+                    name=build_autosave_name(),
+                    auto_snapshot=True,
+                )
+        write_atomic(self.paths.live_auth_file, target.snapshot_path.read_bytes(), 0o600)
+        return self.get_record(name)
+
 
 def load_record(metadata_path: Path) -> SessionRecord:
     payload = json.loads(metadata_path.read_text())
@@ -120,3 +150,17 @@ def load_record(metadata_path: Path) -> SessionRecord:
         auto_snapshot=bool(payload.get("auto_snapshot")),
         is_active=bool(payload.get("is_active", False)),
     )
+
+
+def build_autosave_name() -> str:
+    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    return f"autosave-{timestamp}"
+
+
+def write_atomic(path: Path, content: bytes, mode: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as handle:
+        handle.write(content)
+        temp_path = Path(handle.name)
+    os.chmod(temp_path, mode)
+    temp_path.replace(path)
