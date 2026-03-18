@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from codex_switch.paths import AppPaths
+
 
 def _encode_jwt(payload: dict) -> str:
     header = {"alg": "none", "typ": "JWT"}
@@ -64,3 +66,8 @@ def auth_file(tmp_path: Path, auth_payloads: tuple[dict, dict]) -> Path:
     path = tmp_path / "auth.json"
     path.write_text(json.dumps(auth_json, indent=2))
     return path
+
+
+@pytest.fixture
+def app_paths(tmp_path: Path) -> AppPaths:
+    return AppPaths.from_home(tmp_path)
