@@ -4,6 +4,7 @@ import json
 import re
 import shutil
 from dataclasses import dataclass
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -22,6 +23,7 @@ class SessionRecord:
     account_id: str | None
     default_org_title: str | None
     auto_snapshot: bool
+    is_active: bool = False
 
 
 def slugify(value: str) -> str:
@@ -85,3 +87,36 @@ class SessionStore:
             )
         )
         return record
+
+    def list_records(self) -> list[SessionRecord]:
+        current_bytes = (
+            self.paths.live_auth_file.read_bytes()
+            if self.paths.live_auth_file.exists()
+            else None
+        )
+        records = []
+        for metadata_path in sorted(self.paths.sessions_dir.glob("*.json")):
+            record = load_record(metadata_path)
+            is_active = (
+                current_bytes is not None
+                and record.snapshot_path.exists()
+                and record.snapshot_path.read_bytes() == current_bytes
+            )
+            records.append(replace(record, is_active=is_active))
+        return records
+
+
+def load_record(metadata_path: Path) -> SessionRecord:
+    payload = json.loads(metadata_path.read_text())
+    return SessionRecord(
+        name=payload["name"],
+        slug=payload["slug"],
+        snapshot_path=Path(payload["snapshot_path"]),
+        metadata_path=metadata_path,
+        email=payload.get("email"),
+        plan=payload.get("plan"),
+        account_id=payload.get("account_id"),
+        default_org_title=payload.get("default_org_title"),
+        auto_snapshot=bool(payload.get("auto_snapshot")),
+        is_active=bool(payload.get("is_active", False)),
+    )

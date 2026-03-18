@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from codex_switch.store import SessionStore
 from codex_switch.paths import AppPaths
 
 
@@ -71,3 +72,15 @@ def auth_file(tmp_path: Path, auth_payloads: tuple[dict, dict]) -> Path:
 @pytest.fixture
 def app_paths(tmp_path: Path) -> AppPaths:
     return AppPaths.from_home(tmp_path)
+
+
+@pytest.fixture
+def saved_session(app_paths: AppPaths, auth_file: Path):
+    return SessionStore(app_paths).save(auth_file)
+
+
+@pytest.fixture
+def live_auth_matches_saved(app_paths: AppPaths, saved_session) -> Path:
+    app_paths.live_auth_file.parent.mkdir(parents=True, exist_ok=True)
+    app_paths.live_auth_file.write_text(saved_session.snapshot_path.read_text())
+    return app_paths.live_auth_file
