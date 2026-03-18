@@ -135,6 +135,13 @@ class SessionStore:
         write_atomic(self.paths.live_auth_file, target.snapshot_path.read_bytes(), 0o600)
         return self.get_record(name)
 
+    def delete(self, name: str) -> None:
+        record = self.get_record(name)
+        if record.metadata_path.exists():
+            record.metadata_path.unlink()
+        if record.snapshot_path.exists():
+            record.snapshot_path.unlink()
+
 
 def load_record(metadata_path: Path) -> SessionRecord:
     payload = json.loads(metadata_path.read_text())
