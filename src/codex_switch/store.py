@@ -135,7 +135,9 @@ class SessionStore:
                     name=build_autosave_name(),
                     auto_snapshot=True,
                 )
-        write_atomic(self.paths.live_auth_file, target.snapshot_path.read_bytes(), 0o600)
+        write_atomic(
+            self.paths.live_auth_file, target.snapshot_path.read_bytes(), 0o600
+        )
         return self.get_record(name)
 
     def delete(self, name: str) -> None:

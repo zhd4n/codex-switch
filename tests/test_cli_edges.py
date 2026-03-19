@@ -1,6 +1,11 @@
 from pathlib import Path
 
-from codex_switch.cli import DEFAULT_REPO_URL, main, refresh_managed_repo, resolve_repo_url
+from codex_switch.cli import (
+    DEFAULT_REPO_URL,
+    main,
+    refresh_managed_repo,
+    resolve_repo_url,
+)
 
 
 def test_resolve_repo_url_uses_default_when_env_missing(monkeypatch):
