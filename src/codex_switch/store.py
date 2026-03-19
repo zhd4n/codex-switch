@@ -7,7 +7,7 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from codex_switch.auth import load_auth_snapshot
@@ -86,7 +86,7 @@ class SessionStore:
                     "default_org_title": record.default_org_title,
                     "last_refresh": record.last_refresh,
                     "auto_snapshot": record.auto_snapshot,
-                    "saved_at": datetime.now(UTC).isoformat(),
+                    "saved_at": datetime.now(timezone.utc).isoformat(),
                 },
                 indent=2,
             )
@@ -162,7 +162,7 @@ def load_record(metadata_path: Path) -> SessionRecord:
 
 
 def build_autosave_name() -> str:
-    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     return f"autosave-{timestamp}"
 
 

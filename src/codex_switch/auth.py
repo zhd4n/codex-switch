@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,10 +25,14 @@ class AuthSnapshot:
 
 
 def decode_jwt_payload(token: str) -> dict[str, Any]:
-    payload = token.split(".")[1]
-    payload += "=" * ((4 - len(payload) % 4) % 4)
-    decoded = base64.urlsafe_b64decode(payload.encode())
-    return json.loads(decoded)
+    try:
+        payload = token.split(".")[1]
+        payload += "=" * ((4 - len(payload) % 4) % 4)
+        decoded = base64.urlsafe_b64decode(payload.encode())
+        loaded = json.loads(decoded)
+        return loaded if isinstance(loaded, dict) else {}
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError, json.JSONDecodeError, binascii.Error):
+        return {}
 
 
 def extract_default_org_title(id_payload: dict[str, Any]) -> str | None:
@@ -42,8 +47,9 @@ def extract_default_org_title(id_payload: dict[str, Any]) -> str | None:
 
 def load_auth_snapshot(path: Path) -> AuthSnapshot:
     raw = json.loads(path.read_text())
-    id_payload = decode_jwt_payload(raw["tokens"]["id_token"])
-    access_payload = decode_jwt_payload(raw["tokens"]["access_token"])
+    tokens = raw.get("tokens", {})
+    id_payload = decode_jwt_payload(tokens.get("id_token", ""))
+    access_payload = decode_jwt_payload(tokens.get("access_token", ""))
     return AuthSnapshot(
         raw=raw,
         id_payload=id_payload,
@@ -55,7 +61,7 @@ def load_auth_snapshot(path: Path) -> AuthSnapshot:
         name=id_payload.get("name"),
         plan=id_payload.get("https://api.openai.com/auth", {}).get("chatgpt_plan_type")
         or access_payload.get("https://api.openai.com/auth", {}).get("chatgpt_plan_type"),
-        account_id=raw.get("tokens", {}).get("account_id")
+        account_id=tokens.get("account_id")
         or access_payload.get("https://api.openai.com/auth", {}).get("chatgpt_account_id"),
         session_id=access_payload.get("session_id"),
         default_org_title=extract_default_org_title(id_payload),

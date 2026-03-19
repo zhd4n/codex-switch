@@ -35,3 +35,18 @@ def test_delete_tolerates_missing_snapshot_file(app_paths, saved_session):
     store.delete(saved_session.name)
 
     assert not saved_session.metadata_path.exists()
+
+
+def test_save_preserves_snapshot_when_tokens_are_not_decodable(app_paths, tmp_path):
+    auth_file = tmp_path / "broken-auth.json"
+    auth_file.write_text(
+        '{"auth_mode":"chatgpt","last_refresh":"2026-03-19T00:00:00Z","tokens":{"account_id":"acct-bad","id_token":"bad","access_token":"also.bad","refresh_token":"r"}}'
+    )
+    store = SessionStore(app_paths)
+
+    record = store.save(auth_file)
+
+    assert record.name == "session"
+    assert record.snapshot_path.exists()
+    assert record.metadata_path.exists()
+    assert record.email is None
