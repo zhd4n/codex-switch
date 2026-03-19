@@ -82,10 +82,18 @@ Refreshes the managed copy in `~/.codex-switch/tmp/codex-switch` and re-runs `in
 
 ## Development
 
+Run the same local checks as CI with the repository's existing `uv` workflow:
+
+```bash
+uvx --with-requirements requirements-dev.txt ruff format .
+uvx --with-requirements requirements-dev.txt ruff check .
+uvx --with-requirements requirements-dev.txt pytest -q
+```
+
 Run the full test suite with enforced `100%` coverage:
 
 ```bash
-uv run --with pytest --with pytest-cov pytest -q
+uvx --with-requirements requirements-dev.txt pytest -q
 ```
 
 ## Storage Layout
