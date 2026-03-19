@@ -25,9 +25,21 @@ def handle_status(store: SessionStore) -> int:
     return 0
 
 
+def handle_list(store: SessionStore) -> int:
+    print("active name email plan account_id")
+    for record in store.list_records():
+        active = "*" if record.is_active else " "
+        print(
+            f"{active} {record.name} {record.email} {record.plan} {record.account_id}"
+        )
+    return 0
+
+
 def main(argv: list[str] | None = None, home: Path | None = None) -> int:
     args = build_parser().parse_args(argv)
     store = SessionStore(AppPaths.from_home(home or Path.home()))
     if args.command == "status":
         return handle_status(store)
+    if args.command == "list":
+        return handle_list(store)
     raise NotImplementedError(args.command)
