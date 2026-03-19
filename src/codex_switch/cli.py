@@ -1,11 +1,15 @@
 import argparse
+import os
 from pathlib import Path
+import shutil
+import subprocess
 
 from codex_switch.auth import load_auth_snapshot
 from codex_switch.paths import AppPaths
 from codex_switch.store import SessionStore
 
 COMMANDS = ("save", "list", "activate", "status", "delete", "update")
+DEFAULT_REPO_URL = "https://github.com/zhd4n/codex-switch.git"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -60,9 +64,47 @@ def handle_delete(store: SessionStore, name: str) -> int:
     return 0
 
 
+def resolve_repo_url() -> str:
+    return os.environ.get("CODEX_SWITCH_REPO_URL", DEFAULT_REPO_URL)
+
+
+def refresh_managed_repo(managed_repo_dir: Path, repo_url: str) -> None:
+    managed_repo_dir.parent.mkdir(parents=True, exist_ok=True)
+    if (managed_repo_dir / ".git").exists():
+        subprocess.run(
+            ["git", "-C", str(managed_repo_dir), "pull", "--ff-only"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return
+    if managed_repo_dir.exists():
+        shutil.rmtree(managed_repo_dir)
+    subprocess.run(
+        ["git", "clone", repo_url, str(managed_repo_dir)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def handle_update(paths: AppPaths) -> int:
+    refresh_managed_repo(paths.managed_repo_dir, resolve_repo_url())
+    subprocess.run(
+        ["bash", "install.sh"],
+        cwd=paths.managed_repo_dir,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    print("Updated managed codex-switch installation.")
+    return 0
+
+
 def main(argv: list[str] | None = None, home: Path | None = None) -> int:
     args = build_parser().parse_args(argv)
-    store = SessionStore(AppPaths.from_home(home or Path.home()))
+    paths = AppPaths.from_home(home or Path.home())
+    store = SessionStore(paths)
     if args.command == "save":
         return handle_save(store, args.name)
     if args.command == "activate":
@@ -73,4 +115,10 @@ def main(argv: list[str] | None = None, home: Path | None = None) -> int:
         return handle_status(store)
     if args.command == "list":
         return handle_list(store)
+    if args.command == "update":
+        return handle_update(paths)
     raise NotImplementedError(args.command)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

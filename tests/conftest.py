@@ -2,7 +2,6 @@ import base64
 import copy
 import json
 import os
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -144,4 +143,11 @@ def isolated_home(tmp_path: Path) -> Path:
 def build_install_env(home: Path) -> dict[str, str]:
     env = os.environ.copy()
     env["HOME"] = str(home)
+    return env
+
+
+def build_cli_env(home: Path, repo_root: Path) -> dict[str, str]:
+    env = build_install_env(home)
+    env["CODEX_SWITCH_REPO_URL"] = str(repo_root)
+    env["PYTHONPATH"] = str(repo_root / "src")
     return env
