@@ -1,6 +1,8 @@
 import base64
 import copy
 import json
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -125,3 +127,21 @@ def other_saved_session(app_paths: AppPaths, auth_file_factory):
         org_title="Target Org",
     )
     return SessionStore(app_paths).save(other_auth_file, name="target-session")
+
+
+@pytest.fixture
+def repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture
+def isolated_home(tmp_path: Path) -> Path:
+    home = tmp_path / "home"
+    home.mkdir()
+    return home
+
+
+def build_install_env(home: Path) -> dict[str, str]:
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    return env
