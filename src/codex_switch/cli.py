@@ -11,8 +11,18 @@ COMMANDS = ("save", "list", "activate", "status", "delete", "update")
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="codex-switch")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    for name in COMMANDS:
-        subparsers.add_parser(name)
+    save_parser = subparsers.add_parser("save")
+    save_parser.add_argument("name", nargs="?")
+
+    subparsers.add_parser("list")
+    subparsers.add_parser("status")
+    subparsers.add_parser("update")
+
+    activate_parser = subparsers.add_parser("activate")
+    activate_parser.add_argument("name")
+
+    delete_parser = subparsers.add_parser("delete")
+    delete_parser.add_argument("name")
     return parser
 
 
@@ -35,9 +45,30 @@ def handle_list(store: SessionStore) -> int:
     return 0
 
 
+def handle_save(store: SessionStore, name: str | None) -> int:
+    store.save(store.paths.live_auth_file, name=name)
+    return 0
+
+
+def handle_activate(store: SessionStore, name: str) -> int:
+    store.activate(name)
+    return 0
+
+
+def handle_delete(store: SessionStore, name: str) -> int:
+    store.delete(name)
+    return 0
+
+
 def main(argv: list[str] | None = None, home: Path | None = None) -> int:
     args = build_parser().parse_args(argv)
     store = SessionStore(AppPaths.from_home(home or Path.home()))
+    if args.command == "save":
+        return handle_save(store, args.name)
+    if args.command == "activate":
+        return handle_activate(store, args.name)
+    if args.command == "delete":
+        return handle_delete(store, args.name)
     if args.command == "status":
         return handle_status(store)
     if args.command == "list":
