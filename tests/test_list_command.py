@@ -11,4 +11,6 @@ def test_list_prints_saved_sessions_table(
     assert "author@example.com" in output
     assert "plus" in output
     assert "acct-123" in output
+    assert "Personal" in output
+    assert "2026-03-18T12:55:53.815614Z" in output
     assert "*" in output

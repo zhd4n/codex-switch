@@ -32,19 +32,25 @@ def build_parser() -> argparse.ArgumentParser:
 
 def handle_status(store: SessionStore) -> int:
     snapshot = load_auth_snapshot(store.paths.live_auth_file)
+    print(f"auth_mode: {snapshot.auth_mode}")
     print(f"email: {snapshot.email}")
+    print(f"name: {snapshot.name}")
     print(f"plan: {snapshot.plan}")
     print(f"account_id: {snapshot.account_id}")
     print(f"session_id: {snapshot.session_id}")
+    print(f"default_org: {snapshot.default_org_title}")
+    print(f"email_verified: {snapshot.email_verified}")
+    print(f"last_refresh: {snapshot.last_refresh}")
     return 0
 
 
 def handle_list(store: SessionStore) -> int:
-    print("active name email plan account_id")
+    print("active name email plan account_id default_org last_refresh")
     for record in store.list_records():
         active = "*" if record.is_active else " "
         print(
-            f"{active} {record.name} {record.email} {record.plan} {record.account_id}"
+            f"{active} {record.name} {record.email} {record.plan} "
+            f"{record.account_id} {record.default_org_title} {record.last_refresh}"
         )
     return 0
 
@@ -117,8 +123,8 @@ def main(argv: list[str] | None = None, home: Path | None = None) -> int:
         return handle_list(store)
     if args.command == "update":
         return handle_update(paths)
-    raise NotImplementedError(args.command)
+    raise NotImplementedError(args.command)  # pragma: no cover
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())

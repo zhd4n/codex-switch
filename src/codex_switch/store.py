@@ -24,6 +24,7 @@ class SessionRecord:
     plan: str | None
     account_id: str | None
     default_org_title: str | None
+    last_refresh: str | None
     auto_snapshot: bool
     is_active: bool = False
 
@@ -70,6 +71,7 @@ class SessionStore:
             plan=snapshot.plan,
             account_id=snapshot.account_id,
             default_org_title=snapshot.default_org_title,
+            last_refresh=snapshot.last_refresh,
             auto_snapshot=auto_snapshot,
         )
         metadata_path.write_text(
@@ -82,6 +84,7 @@ class SessionStore:
                     "plan": record.plan,
                     "account_id": record.account_id,
                     "default_org_title": record.default_org_title,
+                    "last_refresh": record.last_refresh,
                     "auto_snapshot": record.auto_snapshot,
                     "saved_at": datetime.now(UTC).isoformat(),
                 },
@@ -137,10 +140,8 @@ class SessionStore:
 
     def delete(self, name: str) -> None:
         record = self.get_record(name)
-        if record.metadata_path.exists():
-            record.metadata_path.unlink()
-        if record.snapshot_path.exists():
-            record.snapshot_path.unlink()
+        record.metadata_path.unlink(missing_ok=True)
+        record.snapshot_path.unlink(missing_ok=True)
 
 
 def load_record(metadata_path: Path) -> SessionRecord:
@@ -154,6 +155,7 @@ def load_record(metadata_path: Path) -> SessionRecord:
         plan=payload.get("plan"),
         account_id=payload.get("account_id"),
         default_org_title=payload.get("default_org_title"),
+        last_refresh=payload.get("last_refresh"),
         auto_snapshot=bool(payload.get("auto_snapshot")),
         is_active=bool(payload.get("is_active", False)),
     )

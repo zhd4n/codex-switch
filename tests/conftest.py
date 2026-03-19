@@ -64,6 +64,7 @@ def auth_file_factory(tmp_path: Path, auth_payloads: tuple[dict, dict]):
         account_id: str = "acct-123",
         session_id: str = "authsess_123",
         org_title: str = "Personal",
+        organizations: list[dict] | None = None,
         auth_mode: str = "chatgpt",
     ) -> Path:
         nonlocal counter
@@ -71,9 +72,11 @@ def auth_file_factory(tmp_path: Path, auth_payloads: tuple[dict, dict]):
         id_payload, access_payload = copy.deepcopy(auth_payloads)
         id_payload["email"] = email
         id_payload["https://api.openai.com/auth"]["chatgpt_plan_type"] = plan
-        id_payload["https://api.openai.com/auth"]["organizations"] = [
-            {"title": org_title, "is_default": True}
-        ]
+        id_payload["https://api.openai.com/auth"]["organizations"] = (
+            organizations
+            if organizations is not None
+            else [{"title": org_title, "is_default": True}]
+        )
         access_payload["session_id"] = session_id
         access_payload["https://api.openai.com/auth"]["chatgpt_plan_type"] = plan
         access_payload["https://api.openai.com/auth"]["chatgpt_account_id"] = account_id

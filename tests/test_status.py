@@ -9,7 +9,12 @@ def test_status_prints_expanded_metadata(capsys, app_paths, auth_file):
 
     assert exit_code == 0
     output = capsys.readouterr().out
+    assert "auth_mode: chatgpt" in output
     assert "author@example.com" in output
+    assert "name: Author" in output
     assert "plan: plus" in output
     assert "account_id: acct-123" in output
     assert "session_id: authsess_123" in output
+    assert "default_org: Personal" in output
+    assert "email_verified: True" in output
+    assert "last_refresh: 2026-03-18T12:55:53.815614Z" in output
