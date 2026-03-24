@@ -31,7 +31,15 @@ def decode_jwt_payload(token: str) -> dict[str, Any]:
         decoded = base64.urlsafe_b64decode(payload.encode())
         loaded = json.loads(decoded)
         return loaded if isinstance(loaded, dict) else {}
-    except (AttributeError, IndexError, KeyError, TypeError, ValueError, json.JSONDecodeError, binascii.Error):
+    except (
+        AttributeError,
+        IndexError,
+        KeyError,
+        TypeError,
+        ValueError,
+        json.JSONDecodeError,
+        binascii.Error,
+    ):
         return {}
 
 
@@ -60,9 +68,13 @@ def load_auth_snapshot(path: Path) -> AuthSnapshot:
         or access_payload.get("https://api.openai.com/profile", {}).get("email"),
         name=id_payload.get("name"),
         plan=id_payload.get("https://api.openai.com/auth", {}).get("chatgpt_plan_type")
-        or access_payload.get("https://api.openai.com/auth", {}).get("chatgpt_plan_type"),
+        or access_payload.get("https://api.openai.com/auth", {}).get(
+            "chatgpt_plan_type"
+        ),
         account_id=tokens.get("account_id")
-        or access_payload.get("https://api.openai.com/auth", {}).get("chatgpt_account_id"),
+        or access_payload.get("https://api.openai.com/auth", {}).get(
+            "chatgpt_account_id"
+        ),
         session_id=access_payload.get("session_id"),
         default_org_title=extract_default_org_title(id_payload),
         email_verified=bool(id_payload.get("email_verified")),

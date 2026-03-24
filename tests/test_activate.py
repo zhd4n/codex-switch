@@ -13,4 +13,7 @@ def test_activate_autosaves_live_auth_when_unsaved(
     assert activated.name == "target-session"
     autosaves = [record for record in store.list_records() if record.auto_snapshot]
     assert len(autosaves) == 1
-    assert app_paths.live_auth_file.read_text() == other_saved_session.snapshot_path.read_text()
+    assert (
+        app_paths.live_auth_file.read_text()
+        == other_saved_session.snapshot_path.read_text()
+    )

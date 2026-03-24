@@ -18,13 +18,18 @@ def test_get_record_raises_for_unknown_session(app_paths):
         store.get_record("missing")
 
 
-def test_activate_restores_target_when_no_live_auth_exists(app_paths, other_saved_session):
+def test_activate_restores_target_when_no_live_auth_exists(
+    app_paths, other_saved_session
+):
     store = SessionStore(app_paths)
 
     activated = store.activate(other_saved_session.name)
 
     assert activated.name == other_saved_session.name
-    assert app_paths.live_auth_file.read_text() == other_saved_session.snapshot_path.read_text()
+    assert (
+        app_paths.live_auth_file.read_text()
+        == other_saved_session.snapshot_path.read_text()
+    )
     assert all(not record.auto_snapshot for record in store.list_records())
 
 
