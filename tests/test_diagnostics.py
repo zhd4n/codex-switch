@@ -125,7 +125,7 @@ def test_mask_helpers_cover_edge_cases():
     assert mask_email("plain") == "plain"
     assert mask_email("@example.com") == "***@example.com"
     assert mask_identifier(None) is None
-    assert mask_identifier("abc", keep_prefix=4, keep_suffix=3) == "abc"
+    assert mask_identifier("abc", keep_prefix=4, keep_suffix=3) == "***"
 
 
 def test_retention_removes_expired_and_caps_recent_files(tmp_path):

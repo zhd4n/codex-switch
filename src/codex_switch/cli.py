@@ -8,6 +8,7 @@ import sys
 import time
 
 from codex_switch.auth import load_auth_snapshot
+from codex_switch.auth import MalformedAuthPayloadError
 from codex_switch.diagnostics import build_auth_summary
 from codex_switch.diagnostics import DiagnosticRun
 from codex_switch.paths import AppPaths
@@ -208,6 +209,8 @@ def classify_error(error: Exception) -> str:
         return "user_error"
     if isinstance(error, KeyError):
         return "user_error"
+    if isinstance(error, MalformedAuthPayloadError):
+        return "data_error"
     if isinstance(error, json.JSONDecodeError):
         return "data_error"
     if isinstance(error, subprocess.CalledProcessError):

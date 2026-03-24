@@ -65,7 +65,7 @@ def mask_identifier(
     if value is None:
         return None
     if len(value) <= keep_suffix:
-        return value
+        return "***"
     return f"{value[:keep_prefix]}***{value[-keep_suffix:]}"
 
 

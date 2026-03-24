@@ -75,6 +75,23 @@ def test_status_failure_report_includes_auth_events_and_summary(app_paths):
     assert payload["context"]["auth_summary"] == {}
 
 
+def test_malformed_auth_payload_is_classified_as_data_error(app_paths):
+    app_paths.live_auth_file.parent.mkdir(parents=True, exist_ok=True)
+    app_paths.live_auth_file.write_text(
+        json.dumps(
+            {
+                "auth_mode": "chatgpt",
+                "last_refresh": "2026-03-18T12:55:53.815614Z",
+                "tokens": [],
+            }
+        )
+    )
+
+    payload = run_and_load_report(app_paths, ["status"])
+
+    assert payload["error_category"] == "data_error"
+
+
 def test_debug_mode_writes_report_on_success(monkeypatch, app_paths, auth_file):
     monkeypatch.setenv("CODEX_SWITCH_DEBUG", "1")
     app_paths.live_auth_file.parent.mkdir(parents=True, exist_ok=True)
