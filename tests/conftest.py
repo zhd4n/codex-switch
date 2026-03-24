@@ -154,3 +154,17 @@ def build_cli_env(home: Path, repo_root: Path) -> dict[str, str]:
     env["CODEX_SWITCH_REPO_URL"] = str(repo_root)
     env["PYTHONPATH"] = str(repo_root / "src")
     return env
+
+
+def load_only_report(app_paths: AppPaths) -> dict:
+    reports = sorted(app_paths.diagnostics_dir.glob("*.json"))
+    assert len(reports) == 1
+    return json.loads(reports[0].read_text())
+
+
+def run_and_load_report(app_paths: AppPaths, argv: list[str]) -> dict:
+    from codex_switch.cli import main
+
+    exit_code = main(argv, home=app_paths.home)
+    assert exit_code == 1
+    return load_only_report(app_paths)
