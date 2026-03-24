@@ -98,6 +98,27 @@ def test_write_failure_report_returns_none_when_fallback_write_also_fails(
     ) is None
 
 
+def test_write_failure_report_keeps_primary_payload_when_cleanup_fails(
+    monkeypatch, tmp_path
+):
+    run = DiagnosticRun(command="status", args=[], diagnostics_dir=tmp_path)
+    monkeypatch.setattr(
+        DiagnosticRun,
+        "cleanup_old_reports",
+        lambda self: (_ for _ in ()).throw(OSError("cleanup failed")),
+    )
+
+    report_path = run.write_failure_report(
+        RuntimeError("boom"),
+        error_category="system_error",
+    )
+
+    assert report_path is not None
+    payload = json.loads(report_path.read_text())
+    assert payload["exception"]["type"] == "RuntimeError"
+    assert "diagnostics_error" not in payload
+
+
 def test_mask_helpers_cover_edge_cases():
     assert fingerprint_bytes(b"abc") == fingerprint_text("abc")
     assert mask_email(None) is None

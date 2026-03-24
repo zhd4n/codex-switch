@@ -1,5 +1,6 @@
 import json
 import subprocess
+import sys
 
 import pytest
 
@@ -23,6 +24,18 @@ def test_main_writes_diagnostic_report_on_failure(app_paths, capsys):
     assert len(reports) == 1
     payload = json.loads(reports[0].read_text())
     assert payload["command"] == "status"
+
+
+def test_main_uses_sys_argv_for_diagnostics_when_argv_is_omitted(
+    monkeypatch, app_paths
+):
+    monkeypatch.setattr(sys, "argv", ["codex-switch", "status"])
+
+    exit_code = main(home=app_paths.home)
+
+    assert exit_code == 1
+    payload = load_only_report(app_paths)
+    assert payload["args"] == ["status"]
 
 
 def test_main_handles_missing_report_path_gracefully(app_paths, monkeypatch, capsys):
