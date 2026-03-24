@@ -115,7 +115,9 @@ def test_debug_mode_activate_success_report_includes_autosave_event(
     assert "autosave_created" in names
 
 
-def test_handle_status_without_diagnostics_still_prints_snapshot(capsys, app_paths, auth_file):
+def test_handle_status_without_diagnostics_still_prints_snapshot(
+    capsys, app_paths, auth_file
+):
     app_paths.live_auth_file.parent.mkdir(parents=True, exist_ok=True)
     app_paths.live_auth_file.write_text(auth_file.read_text())
 

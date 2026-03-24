@@ -88,7 +88,9 @@ def load_auth_snapshot(
             email=id_payload.get("email")
             or access_payload.get("https://api.openai.com/profile", {}).get("email"),
             name=id_payload.get("name"),
-            plan=id_payload.get("https://api.openai.com/auth", {}).get("chatgpt_plan_type")
+            plan=id_payload.get("https://api.openai.com/auth", {}).get(
+                "chatgpt_plan_type"
+            )
             or access_payload.get("https://api.openai.com/auth", {}).get(
                 "chatgpt_plan_type"
             ),

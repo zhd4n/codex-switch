@@ -37,9 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def handle_status(
-    store: SessionStore, diagnostics: DiagnosticRun | None = None
-) -> int:
+def handle_status(store: SessionStore, diagnostics: DiagnosticRun | None = None) -> int:
     if diagnostics is not None:
         diagnostics.context["auth_summary"] = {}
     snapshot = load_auth_snapshot(
@@ -120,7 +118,9 @@ def run_subprocess(
     except subprocess.CalledProcessError as error:
         if diagnostics is not None:
             details = {
-                "command": list(error.cmd) if isinstance(error.cmd, (list, tuple)) else [str(error.cmd)],
+                "command": list(error.cmd)
+                if isinstance(error.cmd, (list, tuple))
+                else [str(error.cmd)],
                 "exit_code": error.returncode,
                 "stdout_tail": tail_lines(error.output),
                 "stderr_tail": tail_lines(error.stderr),

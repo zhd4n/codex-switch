@@ -74,7 +74,7 @@ def build_auth_summary(snapshot: AuthSnapshot) -> dict:
     token_fingerprints = {}
     for key in ("id_token", "access_token"):
         token = tokens.get(key)
-        if token:
+        if isinstance(token, str) and token:
             token_fingerprints[key] = fingerprint_text(token)
     # Identifier shapes differ, so callers must preserve field-specific prefixes
     # instead of assuming one generic masking policy fits every token-like value.
@@ -159,7 +159,10 @@ class DiagnosticRun:
 
     def build_report_path(self) -> Path:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        return self.diagnostics_dir / f"{timestamp}-{self.command}-{self.invocation_id}.json"
+        return (
+            self.diagnostics_dir
+            / f"{timestamp}-{self.command}-{self.invocation_id}.json"
+        )
 
     def build_failure_payload(self, error: Exception, *, error_category: str) -> dict:
         exception = {
@@ -234,9 +237,9 @@ class DiagnosticRun:
     def write_failure_report(
         self, error: Exception, *, error_category: str
     ) -> Path | None:
-        self.diagnostics_dir.mkdir(parents=True, exist_ok=True)
-        report_path = self.build_report_path()
         try:
+            self.diagnostics_dir.mkdir(parents=True, exist_ok=True)
+            report_path = self.build_report_path()
             payload = self.build_failure_payload(error, error_category=error_category)
             report_path.write_text(json.dumps(payload, indent=2))
             # Cleanup is intentionally decoupled from write success so retention
@@ -245,6 +248,7 @@ class DiagnosticRun:
             return report_path
         except Exception as diagnostics_error:
             try:
+                report_path = self.build_report_path()
                 fallback = self.build_fallback_payload(
                     error,
                     error_category=error_category,
@@ -257,9 +261,9 @@ class DiagnosticRun:
                 return None
 
     def write_success_report(self) -> Path | None:
-        self.diagnostics_dir.mkdir(parents=True, exist_ok=True)
-        report_path = self.build_report_path()
         try:
+            self.diagnostics_dir.mkdir(parents=True, exist_ok=True)
+            report_path = self.build_report_path()
             report_path.write_text(json.dumps(self.build_success_payload(), indent=2))
             # Success reports obey the same invariant as failure reports: a
             # cleanup problem must not invalidate an already-written artifact.

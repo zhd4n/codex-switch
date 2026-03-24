@@ -90,12 +90,42 @@ def test_write_failure_report_returns_none_when_fallback_write_also_fails(
     monkeypatch, tmp_path
 ):
     run = DiagnosticRun(command="status", args=[], diagnostics_dir=tmp_path)
-    monkeypatch.setattr(Path, "write_text", lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full")))
+    monkeypatch.setattr(
+        Path,
+        "write_text",
+        lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full")),
+    )
 
-    assert run.write_failure_report(
-        RuntimeError("boom"),
-        error_category="system_error",
-    ) is None
+    assert (
+        run.write_failure_report(
+            RuntimeError("boom"),
+            error_category="system_error",
+        )
+        is None
+    )
+
+
+def test_write_failure_report_returns_none_when_diagnostics_dir_cannot_be_created(
+    monkeypatch, tmp_path
+):
+    run = DiagnosticRun(
+        command="status",
+        args=[],
+        diagnostics_dir=tmp_path / "diagnostics",
+    )
+    monkeypatch.setattr(
+        Path,
+        "mkdir",
+        lambda *args, **kwargs: (_ for _ in ()).throw(PermissionError("read only")),
+    )
+
+    assert (
+        run.write_failure_report(
+            RuntimeError("boom"),
+            error_category="system_error",
+        )
+        is None
+    )
 
 
 def test_write_failure_report_keeps_primary_payload_when_cleanup_fails(
@@ -157,6 +187,10 @@ def test_build_file_context_reports_directory_entries(tmp_path):
 
 def test_write_success_report_returns_none_when_write_fails(monkeypatch, tmp_path):
     run = DiagnosticRun(command="status", args=[], diagnostics_dir=tmp_path)
-    monkeypatch.setattr(Path, "write_text", lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full")))
+    monkeypatch.setattr(
+        Path,
+        "write_text",
+        lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full")),
+    )
 
     assert run.write_success_report() is None

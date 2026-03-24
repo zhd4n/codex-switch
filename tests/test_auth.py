@@ -79,3 +79,21 @@ def test_load_auth_snapshot_can_emit_decode_anomaly_events(tmp_path):
 
     assert snapshot.email is None
     assert any(name == "jwt_decode_fallback" for name, _ in seen)
+
+
+def test_build_auth_summary_skips_non_string_tokens(tmp_path):
+    auth_file = tmp_path / "auth.json"
+    auth_file.write_text(
+        json.dumps(
+            {
+                "auth_mode": "chatgpt",
+                "last_refresh": "2026-03-18T12:55:53.815614Z",
+                "tokens": {"id_token": [], "access_token": 123},
+            }
+        )
+    )
+
+    snapshot = load_auth_snapshot(auth_file)
+    summary = build_auth_summary(snapshot)
+
+    assert summary["token_fingerprints"] == {}
