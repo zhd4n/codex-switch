@@ -7,6 +7,7 @@ class AppPaths:
     home: Path
     codex_dir: Path
     app_dir: Path
+    diagnostics_dir: Path
     sessions_dir: Path
     snapshots_dir: Path
     tmp_dir: Path
@@ -23,6 +24,7 @@ class AppPaths:
             home=home,
             codex_dir=codex_dir,
             app_dir=app_dir,
+            diagnostics_dir=app_dir / "diagnostics",
             sessions_dir=app_dir / "sessions",
             snapshots_dir=app_dir / "snapshots",
             tmp_dir=tmp_dir,

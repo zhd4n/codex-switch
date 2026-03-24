@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from codex_switch.auth import load_auth_snapshot
+from codex_switch.diagnostics import DiagnosticRun
 from codex_switch.paths import AppPaths
 
 
@@ -49,8 +50,19 @@ class SessionStore:
         *,
         force: bool = False,
         auto_snapshot: bool = False,
+        diagnostics: DiagnosticRun | None = None,
     ) -> SessionRecord:
-        snapshot = load_auth_snapshot(auth_path)
+        if diagnostics is not None:
+            diagnostics.record_event(
+                "save_started",
+                auth_path=auth_path,
+                requested_session_name=name,
+                auto_snapshot=auto_snapshot,
+            )
+        snapshot = load_auth_snapshot(
+            auth_path,
+            recorder=diagnostics.record_event if diagnostics is not None else None,
+        )
         session_name = name or snapshot.email or "session"
         slug = slugify(session_name)
         self.paths.sessions_dir.mkdir(parents=True, exist_ok=True)
@@ -91,6 +103,14 @@ class SessionStore:
                 indent=2,
             )
         )
+        if diagnostics is not None:
+            diagnostics.record_event(
+                "save_completed",
+                session_name=record.name,
+                auto_snapshot=record.auto_snapshot,
+            )
+            if record.auto_snapshot:
+                diagnostics.record_event("autosave_created", session_name=record.name)
         return record
 
     def list_records(self) -> list[SessionRecord]:
@@ -110,14 +130,22 @@ class SessionStore:
             records.append(replace(record, is_active=is_active))
         return records
 
-    def get_record(self, name: str) -> SessionRecord:
+    def get_record(
+        self, name: str, diagnostics: DiagnosticRun | None = None
+    ) -> SessionRecord:
+        if diagnostics is not None:
+            diagnostics.record_event("record_lookup_started", session_name=name)
         for record in self.list_records():
             if record.name == name:
                 return record
+        if diagnostics is not None:
+            diagnostics.record_event("record_lookup_failed", session_name=name)
         raise KeyError(name)
 
-    def activate(self, name: str) -> SessionRecord:
-        target = self.get_record(name)
+    def activate(
+        self, name: str, diagnostics: DiagnosticRun | None = None
+    ) -> SessionRecord:
+        target = self.get_record(name, diagnostics=diagnostics)
         live_bytes = (
             self.paths.live_auth_file.read_bytes()
             if self.paths.live_auth_file.exists()
@@ -134,16 +162,24 @@ class SessionStore:
                     self.paths.live_auth_file,
                     name=build_autosave_name(),
                     auto_snapshot=True,
+                    diagnostics=diagnostics,
                 )
         write_atomic(
-            self.paths.live_auth_file, target.snapshot_path.read_bytes(), 0o600
+            self.paths.live_auth_file,
+            target.snapshot_path.read_bytes(),
+            0o600,
+            diagnostics=diagnostics,
         )
-        return self.get_record(name)
+        if diagnostics is not None:
+            diagnostics.record_event("activate_completed", session_name=name)
+        return self.get_record(name, diagnostics=diagnostics)
 
-    def delete(self, name: str) -> None:
-        record = self.get_record(name)
+    def delete(self, name: str, diagnostics: DiagnosticRun | None = None) -> None:
+        record = self.get_record(name, diagnostics=diagnostics)
         record.metadata_path.unlink(missing_ok=True)
         record.snapshot_path.unlink(missing_ok=True)
+        if diagnostics is not None:
+            diagnostics.record_event("delete_completed", session_name=name)
 
 
 def load_record(metadata_path: Path) -> SessionRecord:
@@ -168,10 +204,25 @@ def build_autosave_name() -> str:
     return f"autosave-{timestamp}"
 
 
-def write_atomic(path: Path, content: bytes, mode: int) -> None:
+def write_atomic(
+    path: Path,
+    content: bytes,
+    mode: int,
+    diagnostics: DiagnosticRun | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    if diagnostics is not None:
+        diagnostics.record_event("atomic_write_started", path=path)
+        diagnostics.attach_path_context("live_auth_file", path)
     with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as handle:
         handle.write(content)
         temp_path = Path(handle.name)
+    if diagnostics is not None:
+        # Capture the temp path before chmod/replace so a mid-flight failure
+        # still leaves enough IO context in the diagnostics artifact.
+        diagnostics.attach_path_context("temp_write_path", temp_path)
     os.chmod(temp_path, mode)
     temp_path.replace(path)
+    if diagnostics is not None:
+        diagnostics.attach_path_context("live_auth_file", path)
+        diagnostics.record_event("atomic_write_completed", path=path)
